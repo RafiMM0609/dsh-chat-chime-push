@@ -1,4 +1,4 @@
-# Plugin ini tidak punya dependensi npm, tapi ini menjaga bila nanti ditambahkan.
+# This plugin has no npm dependencies, but this guards against future additions.
 node_modules/
 pnpm-lock.yaml
 package-lock.json
@@ -6,27 +6,27 @@ yarn.lock
 .npm/
 .pnpm-store/
 
-# Arsip dan hasil build lokal (zip rilis dibuat di luar repo)
+# Local archives and build output (release zips are built outside the repo)
 *.zip
 *.tgz
 dist/
 build/
 *.log
 
-# Konfigurasi lokal yang tidak boleh ikut ter-commit
+# Local configuration that must never be committed
 .env
 .env.*
 !.env.example
 *.local
 
-# Cakupan test / cache tooling
+# Test coverage and tooling caches
 coverage/
 .nyc_output/
 .cache/
 .tmp/
 tsconfig.tsbuildinfo
 
-# Sampah OS
+# OS artifacts
 .DS_Store
 .DS_Store?
 ._*
@@ -36,14 +36,14 @@ ehthumbs.db
 Thumbs.db
 desktop.ini
 
-# Editor / IDE
+# Editors / IDEs
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
 
-# Cadangan dan file sementara
+# Backups and scratch files
 *.bak
 *.orig
 *.rej

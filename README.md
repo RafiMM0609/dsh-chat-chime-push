@@ -1,92 +1,94 @@
-# Chat Chime — plugin DSH
+# Chat Chime — DSH plugin
 
-Suara lonceng pendek + kartu selesai yang bisa diklik setiap kali satu turn chat
-selesai. Semua bunyi disintesis di browser (Web Audio), jadi tidak ada file audio
-dan tidak ada dependensi npm sama sekali.
+A short bell chime plus a clickable completion card every time a chat turn
+finishes. Every sound is synthesized in the browser with Web Audio, so there is
+no audio file and no npm dependency at all.
 
-## Isi paket
+## Package contents
 
 ```
 dsh-chat-chime/
-  package.json       manifest bundle + bagian `dsh.client`
-  cordis.patch.yml   patch yang menyisipkan row `chat-chime`
-  index.js           half Host (sengaja kosong: semua kerja di browser)
-  client.js          half browser: chime, kartu selesai, baris Settings
-  locale/en.json     judul + deskripsi untuk Plugin Manager (Inggris)
-  locale/id.json     versi Indonesia
-  locale/zh.json     versi Mandarin
-  icon.svg           ikon plugin
+  package.json       bundle manifest + the `dsh.client` section
+  cordis.patch.yml   patch that inserts the `chat-chime` row
+  index.js           Host half (intentionally empty: all work happens in the browser)
+  client.js          browser half: chime, completion card, Settings row
+  locale/en.json     Plugin Manager title + description (English)
+  locale/id.json     Indonesian version
+  locale/zh.json     Mandarin version
+  icon.svg           plugin icon
 ```
 
-Tidak ada `dependencies` maupun `peerDependencies`: React disediakan oleh tabel
-modul browser, dan semua data sesi datang lewat standard props slot. Karena itu
-tidak ada yang perlu di-install lebih dulu.
+There are no `dependencies` or `peerDependencies`: React comes from the browser
+module table, and all Session data arrives through Slot standard props. Nothing
+has to be installed first.
 
-## Cara pasang
+## Installation
 
-### A. Dari repo git (disarankan untuk banyak mesin)
+### A. From the git repo (recommended for multiple machines)
 
 ```powershell
 git clone https://github.com/RafiMM0609/dsh-chat-chime-push.git
 ```
 
-Lalu minta agent DSH di mesin itu menjalankan `plugin_manager` dengan
-`action: install_bundle` dan `target` = path absolut folder hasil klon.
+Then ask the DSH agent on that machine to run `plugin_manager` with
+`action: install_bundle` and `target` = the absolute path of the cloned folder.
 
-Untuk memperbarui di kemudian hari:
+To update later:
 
 ```powershell
 cd dsh-chat-chime
 git pull
 ```
 
-`install_bundle` menautkan folder (junction/symlink), bukan menyalin, jadi
-perubahan `client.js` langsung terpakai setelah halaman di-reload.
+`install_bundle` links the folder (junction/symlink) rather than copying it, so
+changes to `client.js` take effect after the page is reloaded.
 
-### B. Dari arsip zip
+### B. From the zip archive
 
-1. Ekstrak `dsh-chat-chime-1.0.0.zip` jadi folder `dsh-chat-chime`.
-2. Pasang seperti di atas dengan `target` = path folder itu.
+1. Extract `dsh-chat-chime-1.0.0.zip` into a `dsh-chat-chime` folder.
+2. Install it as above with `target` = the path of that folder.
 
-### C. Salin folder apa adanya
+### C. Copy the folder as-is
 
-Salin foldernya ke mesin tujuan di mana saja (jangan di dalam
-`~/.dsh/profiles/...`; biarkan DSH yang membuat tautannya), lalu pasang.
+Copy the folder anywhere on the target machine (do not place it inside
+`~/.dsh/profiles/...`; let DSH create the link itself), then install it.
 
-## Setelah terpasang
+## After installation
 
-1. Pastikan hasilnya `application: applied`, lalu reload halaman Web GUI.
-2. **Klik di mana saja di halaman** sebelum menguji suara. Browser menolak audio
-   sebelum ada interaksi pengguna; setelah klik pertama, nada siap berbunyi.
-3. Buka Settings → General → **Chat Chime** untuk mengatur suara dan kartu, atau
-   tekan **Coba nada** untuk memastikan audio tidak diblokir.
+1. Confirm the result is `application: applied`, then reload the Web GUI page.
+2. **Click anywhere on the page** before testing the sound. Browsers refuse
+   audio before a user interaction; after the first click the chime is ready.
+3. Open Settings → General → **Chat Chime** to configure the sound and the card,
+   or press **Test chime** to confirm audio is not blocked.
 
-## Cara kerja singkat
+## How it works
 
-Sinyal "selesai" adalah transisi `running: true -> false` pada satu Session
-biasa di Session list. Plugin memakai `useSessionStatus` dari slot props, jadi
-tidak ada polling dan tidak ada event baru yang ditulis ke session log:
+The "finished" signal is the `running: true -> false` transition of one ordinary
+Session in the Session list. The plugin reads it through `useSessionStatus` from
+the Slot props, so there is no polling and no new event is written to the session
+log:
 
-- **Chime**: triad lonceng ~0,4 detik lewat Web Audio, tanpa aset.
-- **Kartu**: muncul di kanan bawah bila kamu tidak sedang melihat chat itu,
-  berisi judul chat + tombol **Buka chat** (memanggil `uiWorkspace.openSession`)
-  dan **Tutup**. Hilang sendiri setelah 15 detik, maksimal 3 kartu bertumpuk.
-- Chat subagent dan Session kosong yang belum dipakai tidak memicu notifikasi.
-- Beberapa chat selesai berbarengan → lonceng berbunyi sekali, kartunya satu per chat.
-- Animasi dimatikan bila OS memakai `prefers-reduced-motion`.
+- **Chime**: a ~0.4 second bell triad through Web Audio, no assets.
+- **Card**: appears at the bottom right when you are not already looking at that
+  chat, showing the chat title plus **Open chat** (calls
+  `uiWorkspace.openSession`) and **Dismiss**. It disappears on its own after 15
+  seconds, with at most 3 cards stacked.
+- Subagent chats and unused blank Sessions do not trigger a notification.
+- Several chats finishing together → the chime sounds once, with one card per chat.
+- Animations are disabled when the OS reports `prefers-reduced-motion`.
 
-## Catatan kompatibilitas
+## Compatibility notes
 
-- Tidak terikat versi DSH tertentu. Hanya memakai dua slot (`shell.overlay`,
-  `settings.general.item`) dan standard props (`useSessionStatus`, `useSessions`, `t`).
-- Kalau sebuah slot tidak ada di komposisi mesin tujuan, registrasinya menjadi
-  no-op dan sisa DSH tetap jalan — tidak melempar error. Bila
-  `settings.general.item` tidak tersedia, kartu dan suara tetap bekerja; hanya
-  baris pengaturannya yang tidak muncul.
-- Preferensi (suara/kartu) disimpan di `localStorage` browser, per-origin
-  `http://127.0.0.1:<port>`. Bila port Web GUI berubah, pengaturan kembali ke
-  default (`Selalu` + kartu aktif).
+- Not tied to a specific DSH version. It uses only two Slots (`shell.overlay`,
+  `settings.general.item`) and standard props (`useSessionStatus`, `useSessions`, `t`).
+- If a Slot is absent from the target machine's composition, its registration
+  becomes a no-op and the rest of DSH keeps working — no error is thrown. When
+  `settings.general.item` is unavailable, the card and the chime still work; only
+  the settings row does not appear.
+- Preferences (sound/card) are stored in browser `localStorage`, per origin
+  `http://127.0.0.1:<port>`. If the Web GUI port changes, the settings fall back
+  to their defaults (`Always` + card enabled).
 
-## Lisensi
+## License
 
-MIT — lihat [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).
