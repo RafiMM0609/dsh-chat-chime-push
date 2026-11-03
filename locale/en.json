@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Chat Chime",
+    "description": "Plays a short synthesized chime and shows an interactive completion card whenever a chat reply finishes, so a finished turn never slips by unnoticed."
+  }
+}

@@ -1,0 +1,14 @@
+# Tidak ada dependensi npm, tapi jaga-jaga bila nanti ditambahkan.
+node_modules/
+pnpm-lock.yaml
+
+# Arsip rilis lokal
+*.zip
+dist/
+
+# Sampah OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log

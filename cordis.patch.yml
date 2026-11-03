@@ -1,0 +1,9 @@
+# The Chat Chime bundle patch.
+#
+# One row. The Host half is intentionally inert: the completion signal, the
+# sound, and the card all live in the browser, which already receives every
+# Session's running state from the Session list. The row exists so the Loader
+# owns the package and the Web boot graph serves its `./client` artifact.
+- insert:
+    - id: chat-chime
+      name: '@local/dsh-chat-chime'

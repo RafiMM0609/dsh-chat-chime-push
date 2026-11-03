@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Chat Chime">
+  <defs>
+    <linearGradient id="dcc-bell" x1="18" y1="10" x2="46" y2="50" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f7ad31"/>
+      <stop offset="1" stop-color="#f59e0b"/>
+    </linearGradient>
+  </defs>
+  <path d="M32 6c-7.18 0-13 5.82-13 13v9.3c0 2.2-.72 4.34-2.05 6.1L11.6 41.4c-1.62 2.13-.1 5.14 2.56 5.14h35.68c2.66 0 4.18-3.01 2.56-5.14l-5.35-7c-1.33-1.76-2.05-3.9-2.05-6.1V19c0-7.18-5.82-13-13-13Z" fill="url(#dcc-bell)"/>
+  <path d="M26 52a6 6 0 0 0 12 0" fill="none" stroke="#f59e0b" stroke-width="4" stroke-linecap="round"/>
+  <path d="M47 15.5c2.9 2.2 4.6 5.6 4.6 9.3" fill="none" stroke="#4176e6" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M51.5 8.2c4.9 3.7 7.8 9.4 7.8 15.8" fill="none" stroke="#4176e6" stroke-width="3.2" stroke-linecap="round" opacity="0.55"/>
+  <circle cx="21" cy="15" r="3.4" fill="#4176e6"/>
+</svg>
