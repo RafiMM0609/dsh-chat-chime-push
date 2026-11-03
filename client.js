@@ -338,21 +338,21 @@ window.__ModuleLoader__.load({
       // announcing the conversation the reader is already looking at, which the
       // chat view announces in its own aria-live region.
       useEffect(() => {
-        const announced = announced.current;
+        const seen = announced.current;
         let sounded = false;
         for (const [sessionId, status] of statuses) {
           if (status.completionUnread !== true) {
             // The framework cleared the fact (the Session was opened or ran
             // again), so a later completion may announce again.
-            announced.delete(sessionId);
+            seen.delete(sessionId);
             continue;
           }
           // `completionUnread` stays true until acknowledged, so a re-run of this
           // effect must not repeat the card or the chime for the same completion.
-          if (announced.has(sessionId)) continue;
+          if (seen.has(sessionId)) continue;
           const subject = openSession.describe(sessionId);
           if (subject === undefined || subject === null) continue;
-          announced.add(sessionId);
+          seen.add(sessionId);
           if (preferences.card) pushCard(sessionId, subject.title);
           sounded = true;
         }
