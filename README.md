@@ -27,7 +27,7 @@ tidak ada yang perlu di-install lebih dulu.
 ### A. Dari repo git (disarankan untuk banyak mesin)
 
 ```powershell
-git clone https://github.com/<user>/dsh-chat-chime.git
+git clone https://github.com/RafiMM0609/dsh-chat-chime-push.git
 ```
 
 Lalu minta agent DSH di mesin itu menjalankan `plugin_manager` dengan

@@ -1,14 +1,49 @@
-# Tidak ada dependensi npm, tapi jaga-jaga bila nanti ditambahkan.
+# Plugin ini tidak punya dependensi npm, tapi ini menjaga bila nanti ditambahkan.
 node_modules/
 pnpm-lock.yaml
+package-lock.json
+yarn.lock
+.npm/
+.pnpm-store/
 
-# Arsip rilis lokal
+# Arsip dan hasil build lokal (zip rilis dibuat di luar repo)
 *.zip
+*.tgz
 dist/
+build/
+*.log
 
-# Sampah OS / editor
+# Konfigurasi lokal yang tidak boleh ikut ter-commit
+.env
+.env.*
+!.env.example
+*.local
+
+# Cakupan test / cache tooling
+coverage/
+.nyc_output/
+.cache/
+.tmp/
+tsconfig.tsbuildinfo
+
+# Sampah OS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+desktop.ini
+
+# Editor / IDE
 .idea/
 .vscode/
-*.log
+*.swp
+*.swo
+*~
+
+# Cadangan dan file sementara
+*.bak
+*.orig
+*.rej
