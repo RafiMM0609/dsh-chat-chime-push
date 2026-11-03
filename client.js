@@ -27,16 +27,15 @@ window.__ModuleLoader__.load({
     // ── dictionary ─────────────────────────────────────────────────────────
     const en = {
       'card.title': 'Reply finished',
-      'card.hint': 'A turn closed while you were away.',
+      'card.hint': 'This chat finished while you were elsewhere.',
       'card.open': 'Open chat',
       'card.dismiss': 'Dismiss',
       'settings.title': 'Chat Chime',
-      'settings.sound': 'Sound',
-      'settings.sound.always': 'Always',
-      'settings.sound.background': 'Background only',
+      'settings.sound': 'Chime',
+      'settings.sound.on': 'On',
       'settings.sound.off': 'Off',
       'settings.card': 'Completion card',
-      'settings.card.note': 'An in-app card with a shortcut back to the chat that just finished.',
+      'settings.card.note': 'Announces a chat that finishes while you are looking at something else, with a shortcut back to it. The open conversation already announces its own completion.',
       'settings.test': 'Test chime',
       'settings.blocked': 'The browser blocked audio. Click anywhere, then test again.',
       'card.aria': 'Chat completion notice'
@@ -44,16 +43,15 @@ window.__ModuleLoader__.load({
 
     const id = {
       'card.title': 'Balasan selesai',
-      'card.hint': 'Satu giliran selesai saat kamu tidak melihat.',
+      'card.hint': 'Chat ini selesai saat kamu sedang di tempat lain.',
       'card.open': 'Buka chat',
       'card.dismiss': 'Tutup',
       'settings.title': 'Chat Chime',
-      'settings.sound': 'Suara',
-      'settings.sound.always': 'Selalu',
-      'settings.sound.background': 'Hanya saat di latar',
+      'settings.sound': 'Nada',
+      'settings.sound.on': 'Aktif',
       'settings.sound.off': 'Mati',
       'settings.card': 'Kartu selesai',
-      'settings.card.note': 'Kartu di dalam aplikasi dengan pintasan kembali ke chat yang baru selesai.',
+      'settings.card.note': 'Memberi tahu chat yang selesai saat kamu sedang melihat hal lain, dengan pintasan kembali ke chat itu. Percakapan yang sedang terbuka sudah mengumumkan penyelesaiannya sendiri.',
       'settings.test': 'Coba nada',
       'settings.blocked': 'Browser memblokir audio. Klik di mana saja, lalu coba lagi.',
       'card.aria': 'Pemberitahuan chat selesai'
@@ -61,16 +59,15 @@ window.__ModuleLoader__.load({
 
     const zh = {
       'card.title': '回复已完成',
-      'card.hint': '你离开时有一轮对话结束了。',
+      'card.hint': '你正在别处时，这个会话结束了。',
       'card.open': '打开会话',
       'card.dismiss': '关闭',
       'settings.title': 'Chat Chime',
       'settings.sound': '提示音',
-      'settings.sound.always': '始终',
-      'settings.sound.background': '仅后台',
-      'settings.sound.off': '关闭',
+      'settings.sound.on': '开',
+      'settings.sound.off': '关',
       'settings.card': '完成卡片',
-      'settings.card.note': '在应用内显示卡片，并可直接回到刚结束的会话。',
+      'settings.card.note': '当你正在查看其他内容时，提示已结束的会话，并可直接跳回该会话。当前打开的对话本身已会播报完成。',
       'settings.test': '试听',
       'settings.blocked': '浏览器拦截了音频。先点击页面任意处，再试一次。',
       'card.aria': '会话完成提示'
@@ -119,15 +116,16 @@ window.__ModuleLoader__.load({
     // ── preferences ────────────────────────────────────────────────────────
     /**
      * Read the stored preferences.
-     * @returns {{sound: 'always'|'background'|'off', card: boolean}} normalized preferences.
+     * @returns {{sound: 'on'|'off', card: boolean}} normalized preferences.
      */
     function readPrefs() {
-      const fallback = { sound: 'always', card: true };
+      const fallback = { sound: 'on', card: true };
       try {
         const raw = window.localStorage.getItem(PREFS_KEY);
         if (raw === null) return fallback;
         const parsed = JSON.parse(raw);
-        const sound = parsed.sound === 'off' || parsed.sound === 'background' ? parsed.sound : 'always';
+        // An older build stored "always"/"background"; both meant "sound on".
+        const sound = parsed.sound === 'off' ? 'off' : 'on';
         return { sound, card: parsed.card !== false };
       } catch {
         return fallback;
@@ -275,9 +273,9 @@ window.__ModuleLoader__.load({
     function CompletionOverlay(props) {
       const { t, useSessionStatus, prefs, chime, openSession } = props;
       const statuses = useSessionStatus((snapshot) => snapshot);
-      const previous = useRef(undefined);
       const timers = useRef(new Map());
       const exits = useRef(undefined);
+      const announced = useRef(new Set());
       const [cards, setCards] = useState([]);
       const [leaving, setLeaving] = useState(undefined);
       const preferences = usePrefs(prefs);
@@ -332,36 +330,50 @@ window.__ModuleLoader__.load({
         };
       }, []);
 
-      // The completion signal: one ordinary Session leaving `running: true`.
-      // Several chats can finish in the same publication, so the chime sounds
-      // once for the batch while every finished chat gets its own card.
+      // The completion signal is the framework's own `completionUnread` fact:
+      // ui-session sets it exactly when a Session stops running while it is NOT
+      // the main-view Session, and clears it as soon as that Session is shown or
+      // runs again. Reading it — instead of diffing `running` ourselves — keeps
+      // this plugin aligned with the sidebar's own completion dot and avoids
+      // announcing the conversation the reader is already looking at, which the
+      // chat view announces in its own aria-live region.
       useEffect(() => {
-        const before = previous.current;
-        previous.current = statuses;
-        if (before === undefined) return;
-        let silent = true;
+        const announced = announced.current;
+        let sounded = false;
         for (const [sessionId, status] of statuses) {
-          const was = before.get(sessionId);
-          if (was === undefined || was.running !== true || status.running !== false) continue;
+          if (status.completionUnread !== true) {
+            // The framework cleared the fact (the Session was opened or ran
+            // again), so a later completion may announce again.
+            announced.delete(sessionId);
+            continue;
+          }
+          // `completionUnread` stays true until acknowledged, so a re-run of this
+          // effect must not repeat the card or the chime for the same completion.
+          if (announced.has(sessionId)) continue;
           const subject = openSession.describe(sessionId);
           if (subject === undefined || subject === null) continue;
-          const onScreen = openSession.isOnScreen(sessionId);
-          if (preferences.card && !onScreen) pushCard(sessionId, subject.title);
-          if (preferences.sound === 'always') silent = false;
-          else if (preferences.sound === 'background' && !onScreen) silent = false;
+          announced.add(sessionId);
+          if (preferences.card) pushCard(sessionId, subject.title);
+          sounded = true;
         }
-        if (!silent) chime.play();
+        if (sounded && preferences.sound === 'on') chime.play();
       }, [statuses, preferences.card, preferences.sound, chime, openSession, pushCard]);
 
       if (cards.length === 0) return null;
 
+      const latest = cards[cards.length - 1];
+
+      // One dedicated live region carries the announcement. The cards stay in
+      // the normal accessibility tree — their Open/Dismiss buttons must remain
+      // reachable — but they are not live regions themselves, so adding a card
+      // never re-announces the whole markup.
       return h(
         'div',
         { className: 'dcc-stack', 'data-plugin': '@local/dsh-chat-chime' },
         h(
           'div',
-          { className: 'dcc-sr', role: 'status', 'aria-live': 'polite' },
-          `${t('card.title')}${cards.length > 0 ? `: ${cards[cards.length - 1].title}` : ''}`
+          { className: 'dcc-sr', role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true' },
+          `${t('card.title')}: ${latest.title}`
         ),
         cards.map((card) =>
           h(
@@ -450,8 +462,7 @@ window.__ModuleLoader__.load({
       }, [chime]);
 
       const modes = [
-        { value: 'always', label: t('settings.sound.always') },
-        { value: 'background', label: t('settings.sound.background') },
+        { value: 'on', label: t('settings.sound.on') },
         { value: 'off', label: t('settings.sound.off') }
       ];
 
@@ -570,18 +581,6 @@ window.__ModuleLoader__.load({
         /** Open one Session in the main view. */
         open(sessionId) {
           uiWorkspace()?.openSession(sessionId);
-        },
-        /**
-         * Whether the reader is already looking at this Session on a focused page,
-         * which makes a card redundant while the chime still applies.
-         * @param {string} sessionId - finished Session.
-         * @returns {boolean} true when that Session is on screen.
-         */
-        isOnScreen(sessionId) {
-          if (document.visibilityState === 'hidden') return false;
-          if (typeof document.hasFocus === 'function' && document.hasFocus() === false) return false;
-          const row = sessions()?.list?.getSnapshot?.()?.byId?.[sessionId];
-          return (row?.retainedBy?.mainView ?? 0) > 0;
         }
       };
 

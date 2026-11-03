@@ -1,8 +1,28 @@
 # Chat Chime — DSH plugin
 
-A short bell chime plus a clickable completion card every time a chat turn
-finishes. Every sound is synthesized in the browser with Web Audio, so there is
-no audio file and no npm dependency at all.
+A short bell chime plus a clickable completion card for chats that finish while
+you are not looking at them. Every sound is synthesized in the browser with Web
+Audio, so there is no audio file and no npm dependency at all.
+
+## Why this exists
+
+DSH already announces the end of a turn to assistive technology — the chat view
+renders a visually hidden `role="status"` / `aria-live="polite"` region
+(`TurnProcessNodeView` in `@deepseek-ai/dsh-client-ui-chat`). That announcement
+only exists **inside the conversation that is currently open**.
+
+When a Session finishes while you are viewing a different Session, a different
+panel, or an unfocused background tab, DSH offers no perceivable cue. The only
+signal is the visual completion dot on that Session's sidebar row, which is
+driven by `completionUnread` in `@deepseek-ai/dsh-client-ui-session` — a purely
+visual state. Across the shipped Client packages there is no `AudioContext` used
+for notification and no `Notification` API call.
+
+This plugin fills that specific gap: a non-visual cue, plus a card that is also
+a shortcut back to the chat that finished. It does **not** duplicate the
+open-conversation announcement, because it only reacts to `completionUnread`,
+which the framework sets exclusively when the finished Session is not the
+main-view Session.
 
 ## Package contents
 
@@ -58,23 +78,24 @@ Copy the folder anywhere on the target machine (do not place it inside
 1. Confirm the result is `application: applied`, then reload the Web GUI page.
 2. **Click anywhere on the page** before testing the sound. Browsers refuse
    audio before a user interaction; after the first click the chime is ready.
-3. Open Settings → General → **Chat Chime** to configure the sound and the card,
-   or press **Test chime** to confirm audio is not blocked.
+3. Open Settings → General → **Chat Chime** to toggle the chime and the card, or
+   press **Test chime** to confirm audio is not blocked.
 
 ## How it works
 
-The "finished" signal is the `running: true -> false` transition of one ordinary
-Session in the Session list. The plugin reads it through `useSessionStatus` from
-the Slot props, so there is no polling and no new event is written to the session
-log:
+The completion signal is `completionUnread` from the Session status snapshot
+read through `useSessionStatus` — the same fact that drives the sidebar's
+completion dot. The plugin does not diff `running` itself, does not poll, and
+writes nothing to the session log.
 
 - **Chime**: a ~0.4 second bell triad through Web Audio, no assets.
-- **Card**: appears at the bottom right when you are not already looking at that
-  chat, showing the chat title plus **Open chat** (calls
-  `uiWorkspace.openSession`) and **Dismiss**. It disappears on its own after 15
-  seconds, with at most 3 cards stacked.
+- **Card**: appears at the bottom right, showing the chat title plus **Open chat**
+  (calls `uiWorkspace.openSession`) and **Dismiss**. It disappears on its own
+  after 15 seconds, with at most 3 cards stacked.
+- Each completion is announced once: because `completionUnread` persists until
+  the Session is opened, the plugin remembers what it already announced and
+  resets that memory when the framework clears the flag.
 - Subagent chats and unused blank Sessions do not trigger a notification.
-- Several chats finishing together → the chime sounds once, with one card per chat.
 - Animations are disabled when the OS reports `prefers-reduced-motion`.
 
 ## Compatibility notes
@@ -85,9 +106,21 @@ log:
   becomes a no-op and the rest of DSH keeps working — no error is thrown. When
   `settings.general.item` is unavailable, the card and the chime still work; only
   the settings row does not appear.
-- Preferences (sound/card) are stored in browser `localStorage`, per origin
+- Preferences are stored in browser `localStorage`, per origin
   `http://127.0.0.1:<port>`. If the Web GUI port changes, the settings fall back
-  to their defaults (`Always` + card enabled).
+  to their defaults (chime on, card enabled).
+
+## Accessibility notes
+
+- One dedicated `role="status"` / `aria-live="polite"` region carries a single
+  short sentence per completion ("Reply finished: <title>"). The cards stay in
+  the normal accessibility tree, so their Open/Dismiss buttons remain reachable,
+  but they are not live regions themselves and are never re-announced.
+- The chime is a supplement, never the only channel: the card carries the same
+  information visually and in text.
+- Sound can be switched off independently of the card, and the card off
+  independently of the sound.
+- Motion is suppressed under `prefers-reduced-motion`.
 
 ## License
 
